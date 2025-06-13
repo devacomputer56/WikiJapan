@@ -3,13 +3,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchButton = document.getElementById('searchButton');
     const resultsArea = document.getElementById('resultsArea');
 
-    let loadedDictionaries = {};
-    let languageManifest = []; // To store the content of languages.json
+    let activeDictionary = null;
+    let activeLanguageName = '';
+    let languageManifest = [];
 
-    function updateResultsArea(message) {
+    function updateResultsArea(message, isHTML = false) {
         resultsArea.innerHTML = '';
         const p = document.createElement('p');
-        p.textContent = message;
+        if (isHTML) {
+            p.innerHTML = message;
+        } else {
+            p.textContent = message;
+        }
         resultsArea.appendChild(p);
     }
 
@@ -17,49 +22,85 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch('languages.json');
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP error fetching manifest! status: ${response.status}`);
             }
-            languageManifest = await response.json(); // Populate languageManifest
+            languageManifest = await response.json();
         } catch (error) {
             console.error("Could not fetch languages manifest:", error);
-            updateResultsArea("Error: Could not load language information.");
+            updateResultsArea("Error: Could not load language information. Search disabled.");
             throw error;
         }
     }
 
-    async function loadLanguageFile(languageEntry) {
+    async function loadDictionary(languageEntry) {
         try {
             const response = await fetch(languageEntry.file);
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status} for ${languageEntry.file}`);
+                throw new Error(`HTTP error fetching dictionary! status: ${response.status} for ${languageEntry.file}`);
             }
-            loadedDictionaries[languageEntry.code] = await response.json();
-            console.log(`Successfully loaded ${languageEntry.name} dictionary.`);
+            activeDictionary = await response.json();
+            activeLanguageName = languageEntry.name;
+            console.log(`Successfully loaded ${activeLanguageName} dictionary from ${languageEntry.file}`);
         } catch (error) {
             console.error(`Could not load ${languageEntry.name} dictionary from ${languageEntry.file}:`, error);
+            activeDictionary = null;
+            updateResultsArea(`Error: Could not load dictionary for ${languageEntry.name}. Search may be impaired.`);
+            throw error;
         }
     }
 
+    function determineBestLanguageMatch(preferredLangs, availableLangs) {
+        if (!availableLangs || availableLangs.length === 0) {
+            return null;
+        }
+        for (const prefLang of preferredLangs) {
+            const exactMatch = availableLangs.find(avlLang => avlLang.code.toLowerCase() === prefLang.toLowerCase());
+            if (exactMatch) {
+                console.log(`Exact match found: ${prefLang}`);
+                return exactMatch;
+            }
+        }
+        for (const prefLang of preferredLangs) {
+            const langPart = prefLang.split('-')[0].toLowerCase();
+            const partialMatch = availableLangs.find(avlLang => avlLang.code.split('-')[0].toLowerCase() === langPart);
+            if (partialMatch) {
+                console.log(`Partial match found: ${prefLang} -> ${partialMatch.code}`);
+                return partialMatch;
+            }
+        }
+        const primaryLang = availableLangs.find(avlLang => avlLang.isPrimary === true);
+        if (primaryLang) {
+            console.log(`Using primary language: ${primaryLang.code}`);
+            return primaryLang;
+        }
+        console.log(`Using first available language: ${availableLangs[0].code}`);
+        return availableLangs[0];
+    }
+
     async function initializeApp() {
-        updateResultsArea("Loading dictionaries...");
+        updateResultsArea("Initializing...");
         searchButton.disabled = true;
         try {
             await fetchLanguagesManifest();
-
-            const loadPromises = languageManifest.map(lang => loadLanguageFile(lang));
-            await Promise.all(loadPromises);
-
-            if (Object.keys(loadedDictionaries).length > 0) {
-                updateResultsArea("Dictionaries loaded. Ready to search.");
-                searchButton.disabled = false;
-            } else {
-                updateResultsArea("Error: No dictionaries could be loaded. Please check the console.");
-                searchButton.disabled = true;
+            if (languageManifest.length === 0) {
+                updateResultsArea("No languages defined in manifest. Search disabled.");
+                return;
             }
+            const userPreferredLangs = navigator.languages || [navigator.language || 'en-US'];
+            console.log("User preferred languages:", userPreferredLangs);
+            const bestMatch = determineBestLanguageMatch(userPreferredLangs, languageManifest);
+            if (!bestMatch) {
+                updateResultsArea("Error: Could not determine a language to load. Search disabled.");
+                return;
+            }
+            updateResultsArea(`Loading ${bestMatch.name} dictionary...`);
+            await loadDictionary(bestMatch);
+            updateResultsArea(`Loaded: ${activeLanguageName}. Ready to search.`);
+            searchButton.disabled = false;
         } catch (error) {
-            if (Object.keys(loadedDictionaries).length === 0) {
-                 updateResultsArea("Failed to initialize dictionaries. Please check console for errors.");
-                 searchButton.disabled = true;
+            if (!activeDictionary) {
+                searchButton.disabled = true;
+                 updateResultsArea("Dictionary initialization failed. Search is disabled. Check console for errors.");
             }
         }
     }
@@ -67,40 +108,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // Updated searchWord function
     function searchWord() {
         const searchTerm = searchInput.value.trim().toLowerCase();
-        resultsArea.innerHTML = ''; // Clear previous results
+        // resultsArea.innerHTML = ''; // updateResultsArea handles this
 
         if (searchTerm === "") {
-            updateResultsArea("Please enter a word to search."); // Using updateResultsArea
+            updateResultsArea("Please enter a word to search.");
             return;
         }
 
-        if (Object.keys(loadedDictionaries).length === 0) {
-            updateResultsArea("Dictionaries are not loaded or failed to load. Cannot perform search.");
+        if (!activeDictionary) {
+            updateResultsArea("Dictionary not loaded or failed to load. Cannot perform search.");
             return;
         }
 
-        let foundOverall = false;
-        for (const langCode in loadedDictionaries) {
-            if (loadedDictionaries.hasOwnProperty(langCode)) {
-                const languageDictionary = loadedDictionaries[langCode];
-                if (languageDictionary.hasOwnProperty(searchTerm)) {
-                    const p = document.createElement('p');
-
-                    let langName = langCode;
-                    const langManifestEntry = languageManifest.find(l => l.code === langCode);
-                    if (langManifestEntry) {
-                        langName = langManifestEntry.name;
-                    }
-
-                    p.textContent = `${langName}: ${languageDictionary[searchTerm]}`;
-                    resultsArea.appendChild(p);
-                    foundOverall = true;
-                }
-            }
-        }
-
-        if (!foundOverall) {
-            updateResultsArea(`"${searchTerm}" not found in any loaded dictionary.`);
+        if (activeDictionary.hasOwnProperty(searchTerm)) {
+            const definition = activeDictionary[searchTerm];
+            // Added .replace to handle potential newlines in definitions and isHTML = true
+            updateResultsArea(`<strong>${activeLanguageName}</strong>: ${definition.replace(/\n/g, '<br>')}`, true);
+        } else {
+            updateResultsArea(`"${searchTerm}" not found in the ${activeLanguageName} dictionary.`);
         }
     }
 
