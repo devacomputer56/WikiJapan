@@ -1,48 +1,291 @@
+/* Basic Reset / Box Sizing */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    /* Light Theme Variables (Default) */
+    --bg-gradient-start: #ececec;
+    --bg-gradient-end: #f9f9f9;
+    --text-primary: #333;
+    --text-secondary: #555;
+    --accent-color: #007bff;
+    --accent-color-hover: #0056b3;
+    --glass-bg: rgba(255, 255, 255, 0.25); /* More opaque for light theme */
+    --glass-blur: 10px;
+    --glass-border-color: rgba(255, 255, 255, 0.5);
+    --glass-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --input-bg: rgba(255, 255, 255, 0.8);
+    --input-border: #ccc;
+    --input-text: #333;
+    --button-text: #fff;
+    --results-text: #333; /* Text inside results area */
+    --accent-color-rgb: 0,123,255; /* Corresponds to #007bff */
+
+    /* Font */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Dark Theme Variables */
+        --bg-gradient-start: #2c3e50;
+        --bg-gradient-end: #34495e;
+        --text-primary: #ecf0f1;
+        --text-secondary: #bdc3c7;
+        --accent-color: #3498db;
+        --accent-color-hover: #2980b9;
+        --glass-bg: rgba(44, 62, 80, 0.35); /* More transparent for dark theme, adjust as needed */
+        --glass-blur: 12px; /* Slightly more blur can look good in dark */
+        --glass-border-color: rgba(255, 255, 255, 0.15);
+        --glass-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        --input-bg: rgba(52, 73, 94, 0.7);
+        --input-border: #566573;
+        --input-text: #ecf0f1;
+        --button-text: #fff;
+        --results-text: #ecf0f1; /* Text inside results area */
+        --accent-color-rgb: 52,152,219; /* Corresponds to #3498db */
+    }
+}
+
 body {
-    font-family: sans-serif;
+    font-family: var(--font-family);
+    background-image: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+    background-attachment: fixed; /* Makes gradient cover the whole viewport */
+    color: var(--text-primary);
+    line-height: 1.6;
+    padding: 20px;
+    min-height: 100vh; /* Ensure gradient covers full height */
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin-top: 50px;
-    background-color: #f4f4f4;
-    color: #333;
+    justify-content: flex-start; /* Align items to the top */
+    padding-top: 5vh; /* Give some space from the top */
 }
 
 h1 {
-    color: #333;
+    color: var(--text-primary);
+    margin-bottom: 2rem;
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 300; /* Lighter font for a more modern feel */
+    letter-spacing: 1px;
 }
 
-#searchInput {
-    padding: 10px;
-    margin-bottom: 10px;
-    width: 300px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+/* Styles for search-container and resultsArea will be added in the next step */
+/* Styles for input, button will be added in a subsequent step */
+
+/* Glassmorphism for Containers */
+.search-container,
+#resultsArea {
+    width: 100%;
+    max-width: 600px; /* Max width for content areas */
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem; /* Space between glass elements */
+
+    /* Glass effect */
+    background-color: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur)); /* For Safari */
+    border: 1px solid var(--glass-border-color);
+    border-radius: 15px; /* Rounded corners for softer glass look */
+    box-shadow: var(--glass-shadow);
+
+    /* Ensure children stack correctly if needed, though not strictly for glass itself */
+    display: flex; /* For search-container children alignment */
+    flex-direction: column; /* resultsArea children stack */
+    align-items: stretch; /* search-container children stretch */
 }
 
-#searchButton {
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-bottom: 20px;
-}
-
-#searchButton:hover {
-    background-color: #0056b3;
+.search-container {
+    flex-direction: row; /* Override for search-container: input and button side-by-side */
+    align-items: center; /* Align items vertically in the middle */
+    gap: 10px; /* Space between input and button */
 }
 
 #resultsArea {
-    width: 300px;
-    padding: 15px;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    min-height: 50px;
+    min-height: 100px; /* Minimum height to show the glass effect even when empty */
+    color: var(--results-text); /* Ensure text color inside results area is theme-aware */
 }
 
 #resultsArea p {
-    margin: 0;
+    margin: 0; /* Reset default paragraph margin if needed */
+    padding: 0.5rem 0; /* Add some padding to text lines */
 }
+
+/* Ensure resultsArea initial message is also themed (if not already handled by body color) */
+#resultsArea p:first-child { /* Targets the initial "Loading/Enter a word" message */
+    color: var(--text-secondary);
+}
+
+/* Interactive Element Styling */
+#searchInput {
+    flex-grow: 1; /* Allow input to take available space in the search-container */
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    color: var(--input-text);
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    border-radius: 10px; /* Softer corners */
+    outline: none; /* Remove default outline */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#searchInput::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+#searchInput:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(var(--accent-color-rgb, 0, 123, 255), 0.25); /* Fallback for --accent-color-rgb if not defined */
+    /* Note: --accent-color-rgb would need to be defined in :root and media query if used like this, e.g. --accent-color-rgb: 0,123,255; */
+    /* Simpler focus: just use accent-color for border and a subtle shadow */
+    /* box-shadow: 0 0 5px var(--accent-color); /* Simpler glow */
+}
+
+
+#searchButton {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--button-text);
+    background-color: var(--accent-color);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    white-space: nowrap; /* Prevent button text from wrapping */
+}
+
+#searchButton:hover {
+    background-color: var(--accent-color-hover);
+}
+
+#searchButton:active {
+    transform: translateY(1px); /* Subtle press effect */
+}
+
+/* Animations and Transitions for "Fluid Motion" */
+
+/* Animation for search results appearing */
+@keyframes fadeInSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Apply animation to paragraphs inside resultsArea when they are added.
+   This relies on JavaScript re-populating resultsArea, which will trigger
+   the animation on newly added <p> elements if they are the direct children.
+   If resultsArea itself is hidden/shown, we'd animate resultsArea.
+   Assuming individual <p> tags are added/replaced for results. */
+#resultsArea p {
+    /* Ensure existing padding/margin is not an issue, from previous step: */
+    /* margin: 0; padding: 0.5rem 0; */
+    animation: fadeInSlideUp 0.5s ease-out forwards;
+}
+
+/* Ensure button transitions (already added in previous step) are smooth */
+#searchButton {
+    /* padding, font-size, etc. from previous step */
+    /* color, background-color, border, border-radius from previous step */
+    /* cursor, white-space from previous step */
+    transition: background-color 0.3s ease, transform 0.1s ease; /* Confirming/standardizing */
+}
+
+#searchInput {
+    /* styles from previous step */
+    transition: border-color 0.3s ease, box-shadow 0.3s ease; /* Confirming/standardizing */
+}
+
+/* Accessibility Adjustments */
+
+@media (prefers-reduced-motion: reduce) {
+    /* Disable or reduce animations and transitions */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important; /* Play only once, very quickly */
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important; /* For any future scroll effects */
+    }
+
+    /* You could also specifically target elements if the above is too broad, for example:
+    #resultsArea p,
+    #searchButton,
+    #searchInput {
+        animation: none !important;
+        transition: none !important;
+    }
+    */
+}
+
+/*
+   Contrast Preference:
+   The current design aims for good base contrast with themed text colors.
+   If specific high-contrast adjustments were needed, they would be added here.
+   For example, if --text-primary wasn't sufficiently high contrast against --glass-bg
+   in some themes for users requesting `prefers-contrast: more`.
+
+   Example (illustrative, might not be needed if base contrast is good):
+   @media (prefers-contrast: more) {
+       :root {
+           // Light theme high contrast
+           // --text-primary: #000;
+           // --glass-bg: rgba(255, 255, 255, 0.6); // Less transparent
+       }
+
+       @media (prefers-color-scheme: dark) {
+           :root {
+               // Dark theme high contrast
+               // --text-primary: #fff;
+               // --glass-bg: rgba(0, 0, 0, 0.6); // Less transparent
+           }
+       }
+
+       #searchInput {
+           // --input-text: #000; // Or #fff for dark
+           // --input-bg: rgba(255,255,255,0.9); // Or dark equivalent
+       }
+       // etc. for other elements
+   }
+
+   For now, we assume the chosen variable colors already provide sufficient contrast,
+   but this is where such specific overrides would go.
+   The key is designing with good contrast from the start.
+*/
+
+/*
+   Reduced Transparency:
+   The `prefers-reduced-transparency` media query is not as widely supported or
+   standardized in its effect as `prefers-reduced-motion`.
+   If a user needs reduced transparency, the primary concern is usually legibility.
+   Making glass backgrounds more opaque could be one approach.
+
+   Example (illustrative):
+   @media (prefers-reduced-transparency: reduce) {
+       :root {
+           // --glass-bg: rgba(255, 255, 255, 0.85); // More opaque for light
+       }
+       @media (prefers-color-scheme: dark) {
+           :root {
+               // --glass-bg: rgba(44, 62, 80, 0.85); // More opaque for dark
+           }
+       }
+   }
+   This step will focus on `prefers-reduced-motion` as it's widely supported and directly
+   relates to the animations we've added. Good base contrast is assumed for now.
+*/
+
+</style.css>
