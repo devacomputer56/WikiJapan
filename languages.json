@@ -13,5 +13,10 @@
         "code": "fr",
         "name": "French",
         "file": "fr.json"
+    },
+    {
+        "code": "ja",
+        "name": "Japanese",
+        "file": "ja.json"
     }
 ]
